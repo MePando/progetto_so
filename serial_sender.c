@@ -29,28 +29,28 @@ int main(int argc, char** argv) {
 
   serial_set_blocking(fd, 1);
 
-  printf("Please write new camera position, using the format x:y in degrees from 0 to 180 (e.g. 90:180): ");
-  while (1){
-  	scanf("%s", command);
-        if(sscanf(command, "%d:%d", &pos_x, &pos_y)){
-
-		if((pos_x<=180 && pos_x>=0) && (pos_y<=180 && pos_y>=0)){
-			break;
-		}
-	}
-	printf("\nSome error please follow the format! Retry: ");
-  }
-  
-  printf("Thanks! Trying to send: %s\n", command);
-	
-  int n_write = write(fd, command, 8);
-
-  const int bsize=10;
+  const int bsize=8;
   char buf[bsize];
   while (1) {
-    int n_read=read(fd, buf, bsize);
-    for (int i=0; i<n_read; ++i) {
-      printf("%c", buf[i]);
-    }
+    printf("\nPlease write new camera position, using the format x:y in degrees from 0 to 180 (e.g. 90:180): ");
+	while (1){
+	 	scanf("%s", command);
+	        if(sscanf(command, "%d:%d", &pos_x, &pos_y)){
+
+			if((pos_x<=180 && pos_x>=0) && (pos_y<=180 && pos_y>=0)){
+				break;
+			}
+		}
+		printf("\nSome error please follow the format! Retry: ");
+	}
+	  
+	printf("Thanks! Trying to send: %s\n", command);
+	
+	int n_write = write(fd, command, 8);
+
+	int n_read=read(fd, buf, bsize);
+    	for (int i=0; i<n_read; ++i) {
+   		printf("%c", buf[i]);
+   	}
   }
 }
