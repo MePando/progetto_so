@@ -1,12 +1,12 @@
 CC=gcc
 CCOPTS=-std=gnu99
-BINS= serial_example
+BINS= serial_sender
 
 .phony: clean all
 
 all: $(BINS)
 
-serial_example:	serial_example.c serial_linux.c 
+serial_sender:	serial_sender.c serial_linux.c 
 	$(CC) -$(CCOPTS) -o $@ $^  
 
 clean:
