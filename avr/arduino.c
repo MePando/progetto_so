@@ -13,10 +13,15 @@ volatile uint8_t rx_buffer[RX_SIZE];
 volatile uint8_t *rx_write, *rx_read, *rx_end;
 volatile uint8_t messages = 0;
 volatile uint8_t rx_counter = 0;
+
 volatile uint8_t tx_buffer[RX_SIZE];
-volatile uint8_t tx_counter = 0; 
+volatile uint8_t *tx_write, *tx_read, *tx_end;
+volatile uint8_t positions = 0;
+ 
 volatile uint8_t pos_x = 90;
 volatile uint8_t pos_y = 90;
+volatile uint8_t checksum;
+
 const uint8_t mask_x = (1<<4); /* mask for pin 10 */
 const uint8_t mask_y = (1<<5); /* mask for pin 11 */
 
@@ -47,55 +52,63 @@ void rxInit(void){
 	rx_end = &rx_buffer[RX_SIZE];
 }
 
+void txInit(void){
+	/*We inizialise the buffer*/
+	tx_write = tx_read = tx_buffer;
+	tx_end = &tx_buffer[TX_SIZE];
+}
+
 uint8_t crc(uint8_t x, uint8_t y, uint8_t checksum){
 	return 1;
 }
 
-void putChar(uint8_t c){
+void sendPosition(void){
 
-	if(tx_buffer[TX_SIZE-1] == 0)
-		{
-			tx_buffer[tx_counter]=c;
-
-			if(tx_counter < TX_SIZE){
-				tx_counter++;
+	/*If the write pointer points to the same cell of read pointer
+	  it seems that reading is to slow... we forgot about reading the next positions
+	  to align the reading with the writing*/
+	if(tx_write == tx_read && positions != 0){
+		for(uint8_t i = 0; i < 3; i++){
+			tx_read--;
+			if(tx_read <= tx_buffer){
+				tx_read = tx_end;
 			}
 		}
-		else
-		{
-			for(uint8_t i = 0 ; i < TX_SIZE-2; i++){
-				tx_buffer[i] = tx_buffer[i+1];
-			}
-			tx_buffer[TX_SIZE-1] = c;
-		}
-
-		if(tx_counter>0){
-			UCSR0B |= _BV(5);
-		}
-
-}
-
-void putString(uint8_t* buf){
-	while(*buf){
-		//putChar(*buf);
+		positions = 1;
 	}
+
+	/*Fill the tx_buffer*/
+	*tx_write++ = pos_x;
+	*tx_write++ = pos_y;
+	*tx_write++ = checksum;
+
+	positions += 1;
+
+	if (tx_write >= tx_end){
+		tx_write = tx_buffer;
+	}
+
+	/*A response is ready to be send!*/
+	UCSR0B |= _BV(5);
+
 }
 
 void getCommand(void){
 
-	/*Only if they are different because, in case they are the same it means that there are not
+	/*Only if they are different, because in case they are the same it means that there are not
 	  any new messages to read: the previous command is still valid. Messages>0 in the main should
 	  make this check useless, but we do it anyway to be sure*/
 	if( rx_read != rx_write){
 
 		uint8_t x = *rx_read++;
 		uint8_t y = *rx_read++;
-		uint8_t checksum = *rx_read++;
+		uint8_t csum = *rx_read++;
 		messages -= 1;
 
-		if(crc(x, y, checksum)){
+		if(crc(x, y, csum)){
 			pos_x = x;
 			pos_y = y;
+			checksum = csum;
 		}
 
 		if(rx_read >= rx_end){
@@ -116,6 +129,8 @@ int main(void){
 	setTimer();
 	/*Inizialise the rx_buffer*/
 	rxInit();
+	/*Inizialise the tx_buffer*/
+	txInit();
 	sei();
 	/*Start working*/
 	while(1){
@@ -124,6 +139,7 @@ int main(void){
 		while(messages > 0){
 
 			getCommand();
+			sendPosition();
 
 		}
 		/*Continuosly sending the posistions to the servos*/
@@ -165,26 +181,24 @@ ISR(USART0_RX_vect){
 
 ISR(USART0_UDRE_vect) {
 
-	uint8_t temp;
+	/*Only if they are different, because in case they are the same it means that there are not
+	  any new positions to send*/
+	if(tx_read != tx_write){
 
-	if( tx_counter > 0){
-
-		temp = tx_buffer[0];
-
-		for(uint8_t i = 0; i < TX_SIZE-2; i++){
-			tx_buffer[i] = tx_buffer[i+1];
+		for(uint8_t i = 0; i < 3; i++){
+			UDR0 = *tx_read++;
 		}
 
-		tx_buffer[TX_SIZE-1] = 0;
-		tx_counter--;
+		if(tx_read >= tx_end){
+			tx_read = tx_buffer;
+		}
 
-		UDR0 = temp;
+		positions -= 1;
 
 	}
 
-	if(tx_counter == 0){
-		UCSR0B &= ~_BV(5);
-	}
+	/*Leaving the ISR*/
+	UCSR0B &= ~_BV(5);
 
 }
 
