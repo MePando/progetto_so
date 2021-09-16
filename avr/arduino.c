@@ -62,6 +62,11 @@ uint8_t crc(uint8_t x, uint8_t y, uint8_t checksum){
 	return 1;
 }
 
+void print(uint8_t c){
+	while(!(UCSR0A & (1<<UDRE0)));
+	UDR0 = c;
+}
+
 void sendPosition(void){
 
 	/*If the write pointer points to the same cell of read pointer
@@ -185,7 +190,7 @@ ISR(USART0_UDRE_vect) {
 	  any new positions to send*/
 	if(tx_read != tx_write){
 
-		for(uint8_t i = 0; i < TX_SIZE/3; i++){
+		for(uint8_t i = 0; i < TX_SIZE/3-1; i++){
 			UDR0 = *tx_read++;
 		}
 

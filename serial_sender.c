@@ -136,7 +136,7 @@ int main(int argc, char** argv){
 		printf("[Arrived]\n");
 		
 		printf("Position set: ");
-    		for (int i=0; i<n_read; ++i) {
+    		for (int i=0; i < n_read; ++i) {
    			printf("%u ", read_buffer[i]);
    		}
 
