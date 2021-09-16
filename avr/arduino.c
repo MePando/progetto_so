@@ -58,8 +58,20 @@ void txInit(void){
 	tx_end = &tx_buffer[TX_SIZE];
 }
 
-uint8_t crc(uint8_t x, uint8_t y, uint8_t checksum){
-	return 1;
+uint8_t CRC8( uint8_t *addr, uint8_t len){
+	uint8_t crc = 0;
+	for( int i = 0; i < len; i++ ){
+		uint8_t inbyte = addr[i];
+		crc = crc ^ inbyte;
+		for(int j = 0; j < 8; j++){
+			if(crc & 0x01){
+				crc = (crc >> 1) ^ 0x8C;
+        		}else{
+				crc >>= 1;
+			}
+		}
+	}
+	return crc;
 }
 
 void print(uint8_t c){
@@ -105,15 +117,16 @@ void getCommand(void){
 	  make this check useless, but we do it anyway to be sure*/
 	if( rx_read != rx_write){
 
-		uint8_t x = *rx_read++;
-		uint8_t y = *rx_read++;
-		uint8_t csum = *rx_read++;
+		uint8_t buffer[3];
+		buffer[0] = *rx_read++;
+		buffer[1] = *rx_read++;
+		buffer[2] = *rx_read++;
 		messages -= 1;
 
-		if(crc(x, y, csum)){
-			pos_x = x;
-			pos_y = y;
-			checksum = csum;
+		if(CRC8(buffer, 2) == buffer[2]){
+			pos_x = buffer[0];
+			pos_y = buffer[1];
+			checksum = buffer[2];
 		}
 
 		if(rx_read >= rx_end){

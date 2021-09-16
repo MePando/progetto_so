@@ -3,62 +3,20 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define CRC16 0x8005
-
-uint16_t crc16(const uint8_t *data, uint16_t size){
-
-	uint16_t out = 0;
-	int bits_read = 0, bit_flag;
-
-	/* Sanity check: */
-	if(data == NULL){
-		return 0;
-	}
-
-	while(size > 0){
-		bit_flag = out >> 15;
-
-	        /* Get next bit: */
-	        out <<= 1;
-	        out |= (*data >> bits_read) & 1; // item a) work from the least significant bits
-
-	        /* Increment bit counter: */
-	        bits_read++;
-	        if(bits_read > 7){
-	            bits_read = 0;
-	            data++;
-	            size--;
-	        }
-
-	        /* Cycle check: */
-	        if(bit_flag){
-	            out ^= CRC16;
-		}
-	
-	}
-
-	   // item b) "push out" the last 16 bits
-	int i;
-	for (i = 0; i < 16; ++i) {
-		bit_flag = out >> 15;
-		out <<= 1;
-		if(bit_flag){
-			out ^= CRC16;
+uint8_t CRC8( uint8_t *addr, uint8_t len){
+	uint8_t crc = 0;
+	for( int i = 0; i < len; i++ ){
+		uint8_t inbyte = addr[i];
+		crc = crc ^ inbyte;
+		for(int j = 0; j < 8; j++){
+			if(crc & 0x01){
+				crc = (crc >> 1) ^ 0x8C;
+        		}else{
+				crc >>= 1;
+			}
 		}
 	}
-
-	// item c) reverse the bits
-	uint16_t crc = 0;
-	i = 0x8000;
-	int j = 0x0001;
-	for (; i != 0; i >>=1, j <<= 1) {
-		if (i & out){
-			crc |= j;
-		}
-	}
-
 	return crc;
-
 }
 
 int main(int argc, char** argv){
@@ -124,7 +82,7 @@ int main(int argc, char** argv){
 		buffer[1] = pos_y;
 
 		printf("Calculating the checksum...\n");
-		buffer[2] = crc16(buffer, 2);
+		buffer[2] = CRC8(buffer, 2);
 		printf("Checksum: %u\n", buffer[2]);
 
 		printf("Sending...\t\t");
