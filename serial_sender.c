@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <string.h>
 
 #define CRC16 0x8005
 
@@ -103,7 +102,7 @@ int main(int argc, char** argv){
 	uint8_t buffer[bsize]; /*One for pos_x, one for pos_y and the last one for checksum*/
 	uint8_t read_buffer[bsize];
 
-	printf("\nPlease enter new camera position, using the format x:y in degrees from 0 to 180 (e.g. 90:180) or q to close the program.");
+	printf("\nPlease enter new camera position, using the format x:y in degrees from 0 to 180 (e.g. 90:180) or q to close the program.\n");
 	while(1){
 		printf("\nNew position or q to quit: ");
 		while(1){
@@ -128,9 +127,13 @@ int main(int argc, char** argv){
 		buffer[2] = crc16(buffer, 2);
 		printf("Checksum: %u\n", buffer[2]);
 
+		printf("Sending...\t\t");
 		n_write = write(fd, buffer, bsize);
+		printf("[Sent]\n");
 
+		printf("Waiting response...\t");
 		n_read=read(fd, read_buffer, bsize);
+		printf("[Arrived]\n");
 		
 		printf("Position set: ");
     		for (int i=0; i<n_read; ++i) {

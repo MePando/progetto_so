@@ -68,7 +68,7 @@ void sendPosition(void){
 	  it seems that reading is to slow... we forgot about reading the next positions
 	  to align the reading with the writing*/
 	if(tx_write == tx_read && positions != 0){
-		for(uint8_t i = 0; i < 3; i++){
+		for(uint8_t i = 0; i < TX_SIZE/3; i++){
 			tx_read--;
 			if(tx_read <= tx_buffer){
 				tx_read = tx_end;
@@ -154,7 +154,7 @@ ISR(USART0_RX_vect){
 	  it seems that reading is to slow... we forgot about reading the next messages
 	  to align the reading with the writing*/
 	if(rx_write == rx_read && messages != 0){
-		for(uint8_t i = 0; i < 3; i++){
+		for(uint8_t i = 0; i < RX_SIZE/3; i++){
 			rx_read--;
 			if(rx_read <= rx_buffer){
 				rx_read = rx_end;
@@ -168,7 +168,7 @@ ISR(USART0_RX_vect){
 
 
 	/*An entire message is arrived!*/
-	if(rx_counter == 3){
+	if(rx_counter == RX_SIZE/3){
 		rx_counter = 0;
 		messages += 1;
 	}
@@ -185,7 +185,7 @@ ISR(USART0_UDRE_vect) {
 	  any new positions to send*/
 	if(tx_read != tx_write){
 
-		for(uint8_t i = 0; i < 3; i++){
+		for(uint8_t i = 0; i < TX_SIZE/3; i++){
 			UDR0 = *tx_read++;
 		}
 
