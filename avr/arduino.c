@@ -1,13 +1,10 @@
-#include <util/delay.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
 #define BAUD 19600
 #define MYUBRR (F_CPU/16/BAUD-1)
 #define RX_SIZE 9
-#define TX_SIZE 9
-#define TCCRA_MASK (1<<WGM10)|(1<<COM1C0)|(1<<COM1C1)
-#define TCCRB_MASK ((1<<WGM12)|(1<<CS10))   
+#define TX_SIZE 9 
 
 volatile uint8_t rx_buffer[RX_SIZE];
 volatile uint8_t *rx_write, *rx_read, *rx_end;
@@ -22,9 +19,6 @@ volatile uint8_t pos_x = 90;
 volatile uint8_t pos_y = 90;
 volatile uint8_t checksum;
 volatile uint8_t error = 0;
-
-const uint8_t mask_x = (1<<4); /* mask for pin 10 */
-const uint8_t mask_y = (1<<5); /* mask for pin 11 */
 
 void uartInit(void){
 
@@ -41,10 +35,13 @@ void uartInit(void){
 }
 
 void setTimer(void){
-	/*Set up Timer1 in 16-bit Fast PWM mode (mode 14)*/
-	TCCR1A=TCCRA_MASK;
-  	TCCR1B=TCCRB_MASK;
+	/*Set up Timer1 in 16-bit*/
+		/*OCR1A is x, OCR1B is y*/
+	TCCR1A= (1<<COM1A1) | (1<<COM1B1);
+  	TCCR1B= (1<<WGM13) | (1<<CS11);
+	TCNT1 = 0;
 	ICR1 = 20000;
+	TCCR1B |= 2;
 }
 
 void rxInit(void){
@@ -73,11 +70,6 @@ uint8_t CRC8( uint8_t *addr, uint8_t len){
 		}
 	}
 	return crc;
-}
-
-void print(uint8_t c){
-	while(!(UCSR0A & (1<<UDRE0)));
-	UDR0 = c;
 }
 
 void sendPosition(void){
@@ -174,8 +166,8 @@ int main(void){
 	cli();
 	/*Inizialise the uart*/
 	uartInit();
-	/*Inizialise the port*/
-	DDRB |= mask_x;
+	/*Inizialise pin 12 and pin 11 as output port*/
+	DDRB |= 96;
 	/*Set Timer*/
 	setTimer();
 	/*Inizialise the rx_buffer*/
@@ -186,8 +178,8 @@ int main(void){
 	/*Start working*/
 	while(1){
 
-		/*While there are messages in the rx_buffer*/
-		while(messages > 0){
+		/*If there are messages in the rx_buffer*/
+		if(messages > 0){
 
 			getCommand();
 			if(error == 0){
@@ -195,8 +187,10 @@ int main(void){
 			}
 			error = 0;
 
+			OCR1A = 500+11*pos_x;
+			OCR1B = 500+11*pos_y;
+
 		}
-		/*Continuosly sending the posistions to the servos*/
 
 	}
 
