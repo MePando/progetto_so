@@ -93,11 +93,14 @@ int main(int argc, char** argv){
 		n_read=read(fd, read_buffer, bsize);
 		printf("[Arrived]\n");
 		
-		printf("Position set: ");
-    		for (int i=0; i < n_read; ++i) {
-   			printf("%u ", read_buffer[i]);
-   		}
-
+		if(read_buffer[0] <= 180){
+			printf("Position set: ");
+    			for (int i=0; i < n_read; ++i) {
+   				printf("%u ", read_buffer[i]);
+   			}
+		}else{
+			printf("Error in trasmitting... camera still set in last position!");
+		}
 		printf("\n");
 	}
 }

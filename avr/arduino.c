@@ -21,6 +21,7 @@ volatile uint8_t positions = 0;
 volatile uint8_t pos_x = 90;
 volatile uint8_t pos_y = 90;
 volatile uint8_t checksum;
+volatile uint8_t error = 0;
 
 const uint8_t mask_x = (1<<4); /* mask for pin 10 */
 const uint8_t mask_y = (1<<5); /* mask for pin 11 */
@@ -110,6 +111,35 @@ void sendPosition(void){
 
 }
 
+void sendError(void){
+	/*If the write pointer points to the same cell of read pointer
+	  it seems that reading is to slow... we forgot about reading the next positions
+	  to align the reading with the writing*/
+	if(tx_write == tx_read && positions != 0){
+		for(uint8_t i = 0; i < TX_SIZE/3; i++){
+			tx_read--;
+			if(tx_read <= tx_buffer){
+				tx_read = tx_end;
+			}
+		}
+		positions = 1;
+	}
+
+	/*Fill the tx_buffer*/
+	*tx_write++ = 200;
+	*tx_write++ = 200;
+	*tx_write++ = 0;
+
+	positions += 1;
+
+	if (tx_write >= tx_end){
+		tx_write = tx_buffer;
+	}
+
+	/*A response is ready to be send!*/
+	UCSR0B |= _BV(5);
+}
+
 void getCommand(void){
 
 	/*Only if they are different, because in case they are the same it means that there are not
@@ -127,6 +157,9 @@ void getCommand(void){
 			pos_x = buffer[0];
 			pos_y = buffer[1];
 			checksum = buffer[2];
+		}else{
+			sendError();
+			error = 1;			
 		}
 
 		if(rx_read >= rx_end){
@@ -157,7 +190,10 @@ int main(void){
 		while(messages > 0){
 
 			getCommand();
-			sendPosition();
+			if(error == 0){
+				sendPosition();
+			}
+			error = 0;
 
 		}
 		/*Continuosly sending the posistions to the servos*/
