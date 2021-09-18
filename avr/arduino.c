@@ -237,6 +237,8 @@ ISR(USART0_UDRE_vect) {
 			UDR0 = *tx_read++;
 		}
 
+		tx_read++;
+
 		if(tx_read >= tx_end){
 			tx_read = tx_buffer;
 		}
