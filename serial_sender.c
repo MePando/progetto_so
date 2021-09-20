@@ -91,6 +91,15 @@ int main(int argc, char** argv){
 
 		printf("Waiting response...\t");
 		n_read=read(fd, read_buffer, bsize);
+		if(n_read == 1){
+			uint8_t first = read_buffer[0];
+			n_read = read(fd, read_buffer, bsize);
+			uint8_t second = read_buffer[0];
+			read_buffer[0] = first;
+			read_buffer[1] = second;
+			n_read += 1;
+
+		}
 		printf("[Arrived]\n");
 		
 		if(read_buffer[0] <= 180){
